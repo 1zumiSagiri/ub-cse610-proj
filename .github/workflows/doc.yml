@@ -1,0 +1,36 @@
+name: Compile Typst Document
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'prop/**'
+      - '.github/workflows/doc.yml'
+  pull_request:
+    paths:
+      - 'prop/**'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install Typst
+        uses: typst-community/setup-typst@v5
+
+      - name: Create build directory
+        run: mkdir -p build
+
+      - name: Compile Proposal
+        run: |
+          typst compile prop/prop.typ build/prop.pdf
+
+      - name: Upload Proposal PDF
+        uses: actions/upload-artifact@v7
+        with:
+          name: proposal-pdf
+          path: build/prop.pdf
+          retention-days: 2
