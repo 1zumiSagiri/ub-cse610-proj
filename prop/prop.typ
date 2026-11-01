@@ -6,8 +6,6 @@
   "Zhengsong Zhang",
 )
 
-#set document(author: authors)
-
 #set page(
   header: [
     #project_name #h(1fr) #course
@@ -35,6 +33,10 @@
   width: 100%,
   align(center, {
     text(size: 1.8em, weight: "bold")[#project_name]
+    v(0.6em)
+    set text(size: 1.1em, weight: "regular")
+    authors.join(", ")
+    v(0.6em)
   }),
 )
 
