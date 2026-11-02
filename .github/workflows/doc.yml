@@ -11,6 +11,10 @@ on:
       - 'prop/**'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,13 +28,32 @@ jobs:
       - name: Create build directory
         run: mkdir -p build
 
-      - name: Compile Proposal
+      - name: Compile all documents
         run: |
-          typst compile prop/prop.typ build/prop.pdf
+          shopt -s nullglob
+          for f in prop/*.typ; do
+            typst compile "$f" "build/$(basename "${f%.typ}").pdf"
+          done
 
-      - name: Upload Proposal PDF
+      - name: Upload PDFs
+        id: upload
         uses: actions/upload-artifact@v7
         with:
-          name: proposal-pdf
-          path: build/prop.pdf
-          retention-days: 2
+          name: pr-${{ github.event.number || 'master' }}-pdfs
+          path: build/*.pdf
+          archive: false
+          retention-days: 30
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v9
+        env:
+          PDF_URL: ${{ steps.upload.outputs.artifact-url }}
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `PDFs built successfully. [Download](${process.env.PDF_URL})`,
+            });
