@@ -14,7 +14,7 @@
   numbering: "1",
 )
 
-#set heading(numbering: "1")
+#set heading(numbering: "1.1")
 
 #let CodeBloc(content) = block(
   fill: luma(240),
@@ -93,7 +93,7 @@ The extended IMP language has the following features:
 
 3. Supported commands include `skip`, assignment, sequence, conditional, while loop, `raise` and `try-catch` to throw and handle exceptions, `exception` for defining custom exceptions.
 
-4. Tag-like exceptions which do associate any data, e.g., `exception NegativeNumber;`.
+4. Tag-like exceptions which do not associate any data, e.g., `exception DivisionByZero;`.
 
 The assertion logic supports:
 
@@ -109,7 +109,7 @@ The following is an example of IMP program with behavioral specifications:
 
 <target_imp_code>
 ```imp
-exception NegativeNumber;
+exception DivisionByZero;
 
 fn slow_mul(a, b) returns prod
   requires a >= 0 && b >= 0
@@ -122,21 +122,22 @@ fn slow_mul(a, b) returns prod
     invariant prod == a * n && n <= b
   {
     prod := prod + a;
+    n := n + 1;
   }
 }
 
 fn check_divisor(d)
   ensures d != 0
-  raises(NegativeNumber) d == 0
+  raises(DivisionByZero) d == 0
 {
   if d == 0 {
-    raise NegativeNumber;
+    raise DivisionByZero;
   }
 }
 
 fn div(n, d) returns q
   requires n >= 0 && d >= 0
-  raises(NegativeNumber) d == 0
+  raises(DivisionByZero) d == 0
 {
   check_divisor(d);
   q := n / d;
@@ -147,7 +148,7 @@ fn main() returns ret
 {
   try {
     div(10, 0);
-  } catch NegativeNumber {
+  } catch DivisionByZero {
     ret := -1;
   }
   ret := 0;
@@ -179,13 +180,23 @@ fn main() returns ret
 <Scope>
 // Minimum, expected, and stretch outcome
 
+== Unsupported Features
+
+As the project goal is not to build a comprehensive deductive verifier, it does not support the following features:
+
+1. The language does not support arrays so there is no related verification.
+
+2. Though recursive functions are supported, we decide to not verify their total correctness, that is, only partial correctness of functions are verified. We believe that the rules to verify the total correctness of while loops should also apply to recursive functions.
+
+== Supported Features
+
 Since the project is about verification of exceptional behavior, we should support at least exception raising and handling for an IMP code snippet, for example,
 
 ```imp
 try {
   d := 1;
-  raise NegativeNumber;
-} catch NegativeNumber {
+  raise DivisionByZero;
+} catch DivisionByZero {
   d := 0;
 }
 assert d >= 0;
@@ -193,19 +204,29 @@ assert d >= 0;
 
 The tool aims at automated verification of IMP programs involving functions, while loops, and exceptions handling, like #link(<target_imp_code>)[the example code] in the section Feature.
 
-If time allows, we hope to create an IMP interpreter and even a front-end for static compilation.
+== Maybe Supported Features
+
+If time allows, we hope to implement
+
+1. An IMP interpreter based on the defined semantics.
+
+2. A front-end for static compilation, e.g., translating IMP to LLVM IRs.
 
 = Implementation Roadmap
 <Implementation-Roadmap>
 // Timeline and Goal, what tool will use
 
-We plan to implement the verifier in OCaml with
+Using Ocaml, We plan to implement the following core compoennts:
 
-1. `ocamllex` and `Menhir` for lexing and parsing, which is supposed to be done with AI assistance.
+1. Lexer and parser implemented with `ocamllex` and `Menhir`, which is supposed to be done with AI assistance.
 
-2. type checker and VC generator implemented in OCaml.
+2. Type checker.
 
-3. Z3 SMT for checking verificaiton conditions.
+3. Generator and checker verification conditions based on Z3 SMT solver and its OCaml bindings.
+
+4. (Optional) IMP interpreter.
+
+5. An IMP compiler front-end based on LLVM and the related OCaml bindings.
 
 Proposed timeline is as follows,
 
